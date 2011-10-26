@@ -300,7 +300,7 @@ run_script = ()->
   if sources.length
     ensure_directory 'docs', ->
       fs.writeFile 'docs/docco.css', docco_styles if not inline
-    fs.writeFile 'docs/docco.js', docco_scripts if not inline
+      fs.writeFile 'docs/docco.js', docco_scripts if not inline
       files = sources.slice()
       next_file = -> generate_documentation files.shift(), next_file if files.length
       next_file()
