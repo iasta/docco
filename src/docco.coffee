@@ -243,7 +243,7 @@ while args.length
     #
     # An example of using the -r flag would be:
     # 
-    #    docco -r .*\.js .*\.coffee
+    #    docco -r ".*\.js" ".*\.coffee"
     # 
     when '-r' then inline = structured = recursive = true
     # `--structured` will match the docs directory structure to your source
