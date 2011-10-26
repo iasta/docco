@@ -162,6 +162,7 @@ generate_html = (source, sections) ->
 # (the JavaScript implementation of Markdown).
 fs       = require 'fs'
 path     = require 'path'
+watch    = require 'watch'
 showdown = require('./../vendor/showdown').Showdown
 {spawn, exec} = require 'child_process'
 
@@ -234,6 +235,16 @@ while args.length
     when '--version'
       console.log 'Docco v' + version
       return
+    # `-r` will recursively find all files that match any **patterns** passed to
+    # docco. These patterns will use Javascript Regex and match against the entire
+    # file path. This will also trigger the directories to be structured and trigger
+    # the css to render inline.
+    #
+    # An example of using the -r flag would be:
+    # 
+    #    docco -r .*\.js .*\.coffee
+    # 
+    when '-r' then inline = structured = recursive = true
     # `--structured` will match the docs directory structure to your source
     # directory structure. This will also trigger css to render inline.
     when '--structured', '-s' then inline = structured = true
@@ -244,8 +255,7 @@ while args.length
     # stylesheet; otherwise the default docco styles will be used.
     when '--css', '-c' then css_file = args.shift() if args.length
     when '--template', '-t' then template_file = args.shift() if args.length
-    else sources.push path.normalize arg
-sources.sort()
+    else sources.push arg
 
 # Create the template that we will use to generate the Docco HTML page.
 # Use a custom template file if specified
@@ -271,12 +281,31 @@ highlight_start  = '<div class="highlight"><pre>'
 # The end of each Pygments highlight block.
 highlight_end    = '</pre></div>'
 
-# Run the script.
-# For each source file passed in as an argument, generate the documentation.
-if sources.length
-  ensure_directory 'docs', ->
-    fs.writeFile 'docs/docco.css', docco_styles if not inline
-    files = sources.slice()
-    next_file = -> generate_documentation files.shift(), next_file if files.length
-    next_file()
+run_script = ()->
+  sources = sources.map (s)-> path.normalize s
+  sources.sort()
+  
+  # Run the script.
+  # For each source file passed in as an argument, generate the documentation.
+  if sources.length
+    ensure_directory 'docs', ->
+      fs.writeFile 'docs/docco.css', docco_styles if not inline
+      files = sources.slice()
+      next_file = -> generate_documentation files.shift(), next_file if files.length
+      next_file()
 
+if recursive
+  patterns = sources.map (s)-> RegExp '^' + s + '$'
+  sources = []
+  filter = (file)->
+    return true if not patterns.length
+    for p in patterns
+      console.log(file) if file.match(p)
+      return true if p.test file
+  walkCb = (err, files)->
+    for f of files
+      sources.push f if filter f
+    run_script()
+  watch.walk process.cwd(), walkCb
+else
+  run_script()
