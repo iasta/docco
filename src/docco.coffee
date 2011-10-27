@@ -311,10 +311,11 @@ if recursive
   filter = (file)->
     return true if not patterns.length
     for p in patterns
-      console.log(file) if file.match(p)
       return true if p.test file
   walkCb = (err, files)->
     for f of files
+      # Make paths relative again
+      f = path.resolve(f).replace process.cwd() + "/", ""
       sources.push f if filter f
     run_script()
   watch.walk process.cwd(), walkCb
